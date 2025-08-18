@@ -1,24 +1,69 @@
-﻿using Dapper;
+﻿using System.Data;
+using Dapper;
 using MediatR;
 using MonthlyRevenue.Domain;
 using MonthlyRevenue.Infrastructure;
+using MonthlyRevenue.Models; // PagedResponse<T>
 
-namespace MonthlyRevenue.Application.Queries;
-public record GetRevenuesByCompanyQuery(string CompanyCode, string? FromYM, string? ToYM)
-    : IRequest<IReadOnlyList<RevenueRow>>;
-
-public class GetRevenuesByCompanyHandler : IRequestHandler<GetRevenuesByCompanyQuery, IReadOnlyList<RevenueRow>>
+namespace MonthlyRevenue.Application.Queries
 {
-    private readonly DapperContext _ctx;
-    public GetRevenuesByCompanyHandler(DapperContext ctx) => _ctx = ctx;
+    // 查詢參數：不限公司、可選期間 + 分頁
+    public sealed record SearchRevenuesQuery(
+        string? CompanyCode,
+        string? FromYM,          // "YYYYMM"
+        string? ToYM,            // "YYYYMM"
+        int PageIndex = 1,       // 1-based
+        int PageSize = 100
+    ) : IRequest<PagedResponse<MonthlyRevenueFromCsv>>;
 
-    public async Task<IReadOnlyList<RevenueRow>> Handle(GetRevenuesByCompanyQuery r, CancellationToken ct)
+    public sealed class SearchRevenuesHandler
+        : IRequestHandler<SearchRevenuesQuery, PagedResponse<MonthlyRevenueFromCsv>>
     {
-        using var conn = _ctx.CreateConnection();
-        var rows = await conn.QueryAsync<RevenueRow>(
-            "dbo.usp_MonthlyRevenue_SelectByCompany",
-            new { CompanyCode = r.CompanyCode, FromYM = r.FromYM, ToYM = r.ToYM },
-            commandType: System.Data.CommandType.StoredProcedure);
-        return rows.ToList();
+        private readonly DapperContext _ctx;
+        public SearchRevenuesHandler(DapperContext ctx) => _ctx = ctx;
+
+        public async Task<PagedResponse<MonthlyRevenueFromCsv>> Handle(
+            SearchRevenuesQuery r, CancellationToken ct)
+        {
+            using var conn = _ctx.CreateConnection();
+
+            // 參數正規化
+            int? code = ParseNullableInt(r.CompanyCode);
+            short? fromYm = ParseNullableShort(r.FromYM);
+            short? toYm = ParseNullableShort(r.ToYM);
+            int pageIdx = r.PageIndex > 0 ? r.PageIndex : 1;
+            int pageSz = r.PageSize > 0 ? r.PageSize : 100;
+
+            var cmd = new CommandDefinition(
+                "dbo.usp_MonthlyRevenue_Search",
+                new
+                {
+                    CompanyCode = code,
+                    FromYM = fromYm,
+                    ToYM = toYm,
+                    PageIndex = pageIdx,
+                    PageSize = pageSz
+                },
+                commandType: CommandType.StoredProcedure,
+                cancellationToken: ct
+            );
+
+            var list = (await conn.QueryAsync<MonthlyRevenueFromCsv>(cmd)).AsList();
+            var total = list.Count > 0 ? list[0].TotalCount : 0;
+
+            return new PagedResponse<MonthlyRevenueFromCsv>
+            {
+                Items = list,
+                PageIndex = pageIdx,
+                PageSize = pageSz,
+                TotalCount = total ?? 0
+            };
+        }
+
+        private static int? ParseNullableInt(string? s)
+            => string.IsNullOrWhiteSpace(s) ? null : (int.TryParse(s, out var v) ? v : null);
+
+        private static short? ParseNullableShort(string? s)
+            => string.IsNullOrWhiteSpace(s) ? null : (short.TryParse(s, out var v) ? v : null);
     }
 }

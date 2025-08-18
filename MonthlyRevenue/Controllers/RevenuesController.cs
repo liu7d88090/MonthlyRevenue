@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using MonthlyRevenue.Application.Commands;
 using MonthlyRevenue.Application.Queries;
 using MonthlyRevenue.Domain;
+using MonthlyRevenue.Models;
 
 namespace MonthlyRevenue.Controllers;
 
@@ -19,20 +20,27 @@ public class RevenuesController : ControllerBase
         _mapper = mapper;
     }
 
-    /// <summary>查詢：用公司代號（可帶期間）</summary>
-    [HttpGet("{companyCode}")]
-    public async Task<ActionResult<IEnumerable<RevenueResponse>>> Get(
-        [FromRoute] string companyCode,
-        [FromQuery] string? fromYM,
-        [FromQuery] string? toYM)
+    [HttpPost("search")]
+    public async Task<ActionResult<PagedResponse<RevenueResponse>>> Search([FromBody] RevenueSearchRequest req)
     {
-        var rows = await _mediator.Send(new GetRevenuesByCompanyQuery(companyCode, fromYM, toYM));
-        var vm = rows.Select(r => _mapper.Map<RevenueResponse>(r));
-        return Ok(vm);
+        var page = await _mediator.Send(new SearchRevenuesQuery(
+            req.CompanyCode, req.FromYM, req.ToYM, req.PageIndex, req.PageSize));
+
+        var items = page.Items.Select(_mapper.Map<RevenueResponse>).ToList();
+
+        var resp = new PagedResponse<RevenueResponse>
+        {
+            Items = items,
+            PageIndex = req.PageIndex,
+            PageSize = req.PageSize,
+            TotalCount = page.TotalCount
+        };
+
+        return Ok(resp);
     }
 
-    /// <summary>新增/更新：單筆（CSV 解析後逐筆打）</summary>
-    [HttpPost]
+    /// <summary>新增/更新：單筆</summary>
+    [HttpPost("upsert")]
     public async Task<ActionResult> Post([FromBody] RevenueUpsertRequest req)
     {
         var cmd = _mapper.Map<RevenueUpsertCommand>(req);

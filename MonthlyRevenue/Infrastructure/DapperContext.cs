@@ -1,13 +1,22 @@
-﻿using Microsoft.Data.SqlClient;
-using System.Data;
+﻿using System.Data;
+using Microsoft.Data.SqlClient;
 
-namespace MonthlyRevenue.Infrastructure
+namespace MonthlyRevenue.Infrastructure;
+
+public sealed class DapperContext
 {
-    public class DapperContext
+    private readonly string _connString;
+
+    public DapperContext(IConfiguration cfg)
     {
-        private readonly IConfiguration _cfg;
-        public DapperContext(IConfiguration cfg) => _cfg = cfg;
-        public IDbConnection CreateConnection()
-            => new SqlConnection(_cfg.GetConnectionString("Default"));
+        var cs = cfg.GetConnectionString("Default");
+        if (string.IsNullOrWhiteSpace(cs))
+            throw new InvalidOperationException(
+                "Connection string 'Default' not found or empty. " +
+                "Check appsettings*.json / environment variables.");
+
+        _connString = cs;
     }
+
+    public IDbConnection CreateConnection() => new SqlConnection(_connString);
 }

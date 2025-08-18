@@ -1,10 +1,10 @@
 ﻿namespace MonthlyRevenue.Domain
 {
     public record RevenueUpsertRequest(
-        DateTime? ReportDate,
-        string DataYearMonth,
+        int? ReportDate,
+        int DataYearMonth,
         string CompanyCode,
-        string CompanyName,
+        string? CompanyName,
         string? Industry,
         long? Rev_CurrentMonth,
         long? Rev_PreviousMonth,
@@ -18,7 +18,8 @@
     );
 
     public record RevenueResponse(
-        string DataYearMonth,
+        int? ReportDate,
+        int DataYearMonth,
         string CompanyCode,
         string CompanyName,
         string? Industry,

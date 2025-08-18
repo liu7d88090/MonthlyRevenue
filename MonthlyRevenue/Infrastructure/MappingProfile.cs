@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using MonthlyRevenue.Application.Commands;
 using MonthlyRevenue.Domain;
 
 namespace MonthlyRevenue.Infrastructure
@@ -8,7 +9,7 @@ namespace MonthlyRevenue.Infrastructure
         public MappingProfile()
         {
             CreateMap<RevenueUpsertRequest, RevenueUpsertCommand>();
-            CreateMap<RevenueRow, RevenueResponse>();
+            CreateMap<MonthlyRevenueFromCsv, RevenueResponse>();
         }
     }
 }
