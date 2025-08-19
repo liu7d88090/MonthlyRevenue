@@ -48,15 +48,16 @@ namespace MonthlyRevenue.Application.Queries
                 cancellationToken: ct
             );
 
-            var list = (await conn.QueryAsync<MonthlyRevenueFromCsv>(cmd)).AsList();
-            var total = list.Count > 0 ? list[0].TotalCount : 0;
+            using var grid = await conn.QueryMultipleAsync(cmd);
+            var items = (await grid.ReadAsync<MonthlyRevenueFromCsv>()).AsList();
+            var total = await grid.ReadSingleAsync<int>();
 
             return new PagedResponse<MonthlyRevenueFromCsv>
             {
-                Items = list,
+                Items = items,
                 PageIndex = pageIdx,
                 PageSize = pageSz,
-                TotalCount = total ?? 0
+                TotalCount = total
             };
         }
 

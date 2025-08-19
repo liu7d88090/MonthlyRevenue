@@ -19,7 +19,7 @@ CREATE TABLE [dbo].[MonthlyRevenueFromCsv] (
     [Rev_Accu_CurrentYear]  BIGINT          NULL,
     [Rev_Accu_LastYear]     BIGINT          NULL,
     [Accu_YoY_ChangePct]    DECIMAL(9,2)    NULL,
-    [Notes]                 NVARCHAR(MAX)   NOT NULL,
+    [Notes]                 NVARCHAR(MAX)   NULL,
     CONSTRAINT [PK_MonthlyRevenueFromCsv] 
         PRIMARY KEY CLUSTERED ([CompanyCode], [DataYearMonth])
 );

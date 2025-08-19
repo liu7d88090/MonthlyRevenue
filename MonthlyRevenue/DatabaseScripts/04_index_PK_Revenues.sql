@@ -1,3 +1,0 @@
-﻿ALTER TABLE dbo.Revenues
-ADD CONSTRAINT PK_Revenues
-PRIMARY KEY CLUSTERED (CompanyCode ASC, DataYearMonth ASC);

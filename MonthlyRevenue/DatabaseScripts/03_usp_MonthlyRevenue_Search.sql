@@ -15,39 +15,19 @@ GO
 
 CREATE PROC dbo.usp_MonthlyRevenue_Search
     @CompanyCode  INT       = NULL,   -- 不限公司可 NULL
-    @FromYM       SMALLINT  = NULL,   -- YYYYMM
-    @ToYM         SMALLINT  = NULL,   -- YYYYMM
+    @FromYM       SMALLINT  = NULL,   -- 民國 YYYYMM
+    @ToYM         SMALLINT  = NULL,   -- 民國 YYYYMM
     @PageIndex    INT       = 1,      -- 1-based
-    @PageSize     INT       = 100    -- 保護上限
+    @PageSize     INT       = 100     -- 保護上限（下方再強制 <=1000）
 AS
 BEGIN
     SET NOCOUNT ON;
 
     IF @PageIndex < 1 SET @PageIndex = 1;
     IF @PageSize  < 1 SET @PageSize  = 100;
+    IF @PageSize  > 1000 SET @PageSize = 1000;
 
-    ;WITH F AS (
-        SELECT
-            ReportDate,
-            DataYearMonth,
-            CompanyCode,
-            CompanyName,
-            Industry,
-            Rev_CurrentMonth,
-            Rev_PreviousMonth,
-            Rev_SameMonthLastYear,
-            MoM_ChangePct,
-            YoY_ChangePct,
-            Rev_Accu_CurrentYear,
-            Rev_Accu_LastYear,
-            Accu_YoY_ChangePct,
-            Notes,
-            TotalCount = COUNT(*) OVER()
-        FROM dbo.MonthlyRevenueFromCsv WITH (NOLOCK)
-        WHERE (@CompanyCode IS NULL OR CompanyCode = @CompanyCode)
-          AND (@FromYM     IS NULL OR DataYearMonth >= @FromYM)
-          AND (@ToYM       IS NULL OR DataYearMonth <= @ToYM)
-    )
+    -- 結果 1：分頁資料
     SELECT
         ReportDate,
         DataYearMonth,
@@ -62,11 +42,20 @@ BEGIN
         Rev_Accu_CurrentYear,
         Rev_Accu_LastYear,
         Accu_YoY_ChangePct,
-        Notes,
-        TotalCount
-    FROM F
+        Notes
+    FROM dbo.MonthlyRevenueFromCsv
+    WHERE (@CompanyCode IS NULL OR CompanyCode = @CompanyCode)
+      AND (@FromYM     IS NULL OR DataYearMonth >= @FromYM)
+      AND (@ToYM       IS NULL OR DataYearMonth <= @ToYM)
     ORDER BY CompanyCode ASC, DataYearMonth DESC
     OFFSET (@PageIndex - 1) * @PageSize ROWS
     FETCH NEXT @PageSize ROWS ONLY;
+
+    -- 結果 2：總筆數
+    SELECT COUNT(*) AS TotalCount
+    FROM dbo.MonthlyRevenueFromCsv
+    WHERE (@CompanyCode IS NULL OR CompanyCode = @CompanyCode)
+      AND (@FromYM     IS NULL OR DataYearMonth >= @FromYM)
+      AND (@ToYM       IS NULL OR DataYearMonth <= @ToYM);
 END
 GO

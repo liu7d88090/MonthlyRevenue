@@ -9,7 +9,6 @@ GO
 IF OBJECT_ID(N'dbo.usp_MonthlyRevenue_Upsert', N'P') IS NOT NULL
     DROP PROC dbo.usp_MonthlyRevenue_Upsert;
 GO
-
 CREATE PROC dbo.usp_MonthlyRevenue_Upsert
     @ReportDate            INT               = NULL,
     @DataYearMonth         SMALLINT,
@@ -24,9 +23,13 @@ CREATE PROC dbo.usp_MonthlyRevenue_Upsert
     @Rev_Accu_CurrentYear  BIGINT            = NULL,
     @Rev_Accu_LastYear     BIGINT            = NULL,
     @Accu_YoY_ChangePct    DECIMAL(9,2)      = NULL,
-    @Notes                 NVARCHAR(MAX)     = NULL
+    @Notes                 NVARCHAR(MAX)     = NULL,
+    @Affected              INT OUTPUT
 AS
 BEGIN
+    SET NOCOUNT ON;
+
+    SET @Affected = 0;
 
     IF NOT EXISTS (
         SELECT 1
@@ -45,10 +48,11 @@ BEGIN
             @ReportDate, @DataYearMonth, @CompanyCode, @CompanyName, @Industry,
             @Rev_CurrentMonth, @Rev_PreviousMonth, @Rev_SameMonthLastYear,
             @MoM_ChangePct, @YoY_ChangePct, @Rev_Accu_CurrentYear, @Rev_Accu_LastYear,
-            @Accu_YoY_ChangePct, ISNULL(@Notes, N'')
+            @Accu_YoY_ChangePct, @Notes
         );
-    END
 
-    SELECT @@ROWCOUNT AS RowsInserted;
+        SET @Affected = 1;
+    END
 END
 GO
+

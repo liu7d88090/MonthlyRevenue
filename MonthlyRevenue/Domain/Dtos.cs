@@ -3,7 +3,7 @@
     public record RevenueUpsertRequest(
         int? ReportDate,
         int DataYearMonth,
-        string CompanyCode,
+        int CompanyCode,
         string? CompanyName,
         string? Industry,
         long? Rev_CurrentMonth,
@@ -20,7 +20,7 @@
     public record RevenueResponse(
         int? ReportDate,
         int DataYearMonth,
-        string CompanyCode,
+        int CompanyCode,
         string CompanyName,
         string? Industry,
         long? Rev_CurrentMonth,
@@ -30,7 +30,8 @@
         decimal? YoY_ChangePct,
         long? Rev_Accu_CurrentYear,
         long? Rev_Accu_LastYear,
-        decimal? Accu_YoY_ChangePct
+        decimal? Accu_YoY_ChangePct,
+        string? Notes
     );
 
     public record RevenueRow(
